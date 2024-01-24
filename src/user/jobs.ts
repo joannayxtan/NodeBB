@@ -14,7 +14,7 @@ interface Users {
 
 const jobs: {[key: string]: typeof CronJob} = {};
 
-export default function cronJobFn(User: Users): void {
+export = function (User: Users): void {
     function startDigestJob(name: string, cronString: string, term: string): void {
         // The next line calls a function in a module that has not been updated to TS yet
         /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
@@ -42,7 +42,7 @@ export default function cronJobFn(User: Users): void {
     User.startJobs = function () {
         winston.verbose('[user/jobs] (Re-)starting jobs...');
 
-        let { digestHour }: { [key:string]: number } = meta.config;
+        let { digestHour }: { [key:string]: number  } = meta.config;
 
         // Fix digest hour if invalid
         if (isNaN(digestHour)) {
