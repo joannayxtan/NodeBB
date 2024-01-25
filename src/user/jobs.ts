@@ -1,9 +1,9 @@
 
 
-import * as winston from 'winston';
+import winston from 'winston';
 import { CronJob } from 'cron';
-import * as db from '../database';
-import * as meta from '../meta';
+import db from '../database';
+import meta from '../meta';
 
 interface Users {
   startJobs: () => void;
@@ -13,13 +13,14 @@ interface Users {
 }
 
 const jobs: {[key: string]: typeof CronJob} = {};
+type CronJobFunction = () => Promise<void>;
 
 export = function (User: Users): void {
     function startDigestJob(name: string, cronString: string, term: string): void {
         // The next line calls a function in a module that has not been updated to TS yet
         /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
          @typescript-eslint/no-unsafe-call */
-        jobs[name] = new CronJob(cronString, async () => {
+        jobs[name] = new CronJob(cronString, (async () => {
             winston.verbose(`[user/jobs] Digest job (${name}) started.`);
             try {
                 if (name === 'digest.weekly') {
@@ -35,14 +36,14 @@ export = function (User: Users): void {
             } catch (err) {
                 if (err instanceof Error) winston.error(err.stack);
             }
-        }, null, true);
+        }) as CronJobFunction, null, true);
         winston.verbose(`[user/jobs] Starting job (${name})`);
     }
 
     User.startJobs = function () {
         winston.verbose('[user/jobs] (Re-)starting jobs...');
 
-        let { digestHour }: { [key:string]: number  } = meta.config;
+        let { digestHour }: Record<string, number> = meta.config;
 
         // Fix digest hour if invalid
         if (isNaN(digestHour)) {
@@ -57,6 +58,8 @@ export = function (User: Users): void {
         startDigestJob('digest.weekly', `0 ${digestHour} * * 0`, 'week');
         startDigestJob('digest.monthly', `0 ${digestHour} 1 * *`, 'month');
 
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+         @typescript-eslint/no-unsafe-call */
         jobs['reset.clean'] = new CronJob('0 0 * * *', User.reset.clean, null, true);
         winston.verbose('[user/jobs] Starting job (reset.clean)');
 
